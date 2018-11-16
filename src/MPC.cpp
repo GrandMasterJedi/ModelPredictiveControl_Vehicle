@@ -5,20 +5,23 @@
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
-size_t N = 0;
-double dt = 0;
+// TODO: Set the timestep length and duration**************************
+size_t N = 25;
+double dt = 0.05;
 
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-// simulator around in a circle with a constant steering angle and velocity on a
-// flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-// presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
+/*
+Here we had to assign values to N and dt. It's likely you set these variables to slightly different 
+values. That's fine as long as the cross track error decreased to 0. It's a good idea to play with 
+different values here.
+For example, if we were to set N to 100, the simulation would run much slower. 
+This is because the solver would have to optimize 4 times as many control inputs. 
+Ipopt, the solver, permutes the control input values until it finds the lowest cost. If you were to 
+pen up Ipopt and plot the x and y values as the solver mutates them, the plot would look like a 
+worm moving around trying to fit the shape of the reference trajectory.
+
+Lf was tuned until the the radius formed by the simulating the model presented in the classroom matched the previous radius.
+This is the length from front to CoG that has a similar radius.
+*/
 const double Lf = 2.67;
 
 class FG_eval {
@@ -28,17 +31,140 @@ class FG_eval {
   FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
+
+  // Cost Function
   void operator()(ADvector& fg, const ADvector& vars) {
-    // TODO: implement MPC
+    // TODO: implement MPC ************************************
     // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
+
+    // The cost is stored is the first element of `fg`.
+    // Any additions to the cost should be added to `fg[0]`.
+    fg[0] = 0;
+
+    // Cost function
+    // TODO: Define the cost related the reference state and
+    // any anything you think may be beneficial.
+
+    // The part of the cost based on the reference state.
+    for (int t = 0; t < N; t++) {
+      fg[0] += CppAD::pow(vars[cte_start + t], 2);
+      fg[0] += CppAD::pow(vars[epsi_start + t], 2);
+      fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+    }
+
+    // Minimize the use of actuators.
+    for (int t = 0; t < N - 1; t++) {
+      fg[0] += CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += CppAD::pow(vars[a_start + t], 2);
+    }
+
+    // // Minimize the value gap between sequential actuations.
+    // for (int t = 0; t < N - 2; t++) {
+    //   fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+    //   fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+    // }
+
+    for (int i = 0; i < N - 2; i++) {
+      // Tune this part! Steering angle
+      // Multiplying that part by a value > 1 will influence the solver into keeping sequential 
+      // steering values closer together.
+      fg[0] += 100 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+      fg[0] += CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+    }
+
+
+
+    fg[1 + x_start] = vars[x_start];
+    fg[1 + y_start] = vars[y_start];
+    fg[1 + psi_start] = vars[psi_start];
+    fg[1 + v_start] = vars[v_start];
+    fg[1 + cte_start] = vars[cte_start];
+    fg[1 + epsi_start] = vars[epsi_start];
+
+    // Define the cost function and constraints
+
+    for (int t = 1; t < N; t++) {
+      // psi, v, delta at time t
+
+
+      AD<double> psi0 = vars[psi_start + t - 1];
+      AD<double> v0 = vars[v_start + t - 1];
+      AD<double> delta0 = vars[delta_start + t - 1];
+
+      // psi at time t+1
+      AD<double> psi1 = vars[psi_start + t];
+
+      // Here's `x` to get you started.
+      // The idea here is to constraint this value to be 0.
+      //
+      // NOTE: The use of `AD<double>` and use of `CppAD`!
+      // This is also CppAD can compute derivatives and pass these to the solver.
+      // AD<double> x1 = vars[x_start + t];
+      // AD<double> x0 = vars[x_start + t - 1];
+
+      // // TODO: Setup the rest of the model constraints
+      // fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+      fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+
+
+      // fg[0] stores the cost value, so there's always an offset of 1. So 
+      // fg[1 + psi_start] is where we store the initial value of \psiψ. Finally, 
+      // fg[1 + psi_start + t] is reserved for the ttth of NN values of \psiψ that the solver 
+
+
+      for (int t = 1; t < N; t++) {
+        // The state at time t+1 .
+        AD<double> x1 = vars[x_start + t];
+        AD<double> y1 = vars[y_start + t];
+        AD<double> psi1 = vars[psi_start + t];
+        AD<double> v1 = vars[v_start + t];
+        AD<double> cte1 = vars[cte_start + t];
+        AD<double> epsi1 = vars[epsi_start + t];
+
+        // The state at time t.
+        AD<double> x0 = vars[x_start + t - 1];
+        AD<double> y0 = vars[y_start + t - 1];
+        AD<double> psi0 = vars[psi_start + t - 1];
+        AD<double> v0 = vars[v_start + t - 1];
+        AD<double> cte0 = vars[cte_start + t - 1];
+        AD<double> epsi0 = vars[epsi_start + t - 1];
+
+        // Only consider the actuation at time t.
+        AD<double> delta0 = vars[delta_start + t - 1];
+        AD<double> a0 = vars[a_start + t - 1];
+
+        AD<double> f0 = coeffs[0] + coeffs[1] * x0;
+        AD<double> psides0 = CppAD::atan(coeffs[1]);
+
+        // Here's `x` to get you started.
+        // The idea here is to constraint this value to be 0.
+        //
+        // Recall the equations for the model:
+        // x_[t] = x[t-1] + v[t-1] * cos(psi[t-1]) * dt
+        // y_[t] = y[t-1] + v[t-1] * sin(psi[t-1]) * dt
+        // psi_[t] = psi[t-1] + v[t-1] / Lf * delta[t-1] * dt
+        // v_[t] = v[t-1] + a[t-1] * dt
+        // cte[t] = f(x[t-1]) - y[t-1] + v[t-1] * sin(epsi[t-1]) * dt
+        // epsi[t] = psi[t] - psides[t-1] + v[t-1] * delta[t-1] / Lf * dt
+        fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
+        fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
+        fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+        fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
+        fg[1 + cte_start + t] = cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
+        fg[1 + epsi_start + t] = epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);      
+      }
+    }
   }
 };
 
 //
 // MPC class definition implementation.
 //
+
+
+
 MPC::MPC() {}
 MPC::~MPC() {}
 
@@ -97,6 +223,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // Change this as you see fit.
   options += "Numeric max_cpu_time          0.5\n";
 
+
+// This is then used by Ipopt to find the lowest cost trajectory:
   // place to return solution
   CppAD::ipopt::solve_result<Dvector> solution;
 
