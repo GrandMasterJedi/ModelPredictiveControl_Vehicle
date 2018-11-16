@@ -1,6 +1,6 @@
 [image1]: ./img/straight.PNG "im1"
 [image2]: ./img/curve.PNG "im2"
-
+[gif]: ./doc/mpc-vid2.gif "gif1"
 
 
 # Demo of Model Predictive Control (MPC) for Autonomous Driving
@@ -8,6 +8,8 @@
 A vehicle drives autonomously in a simulated environment, with its steering angle predicted by a dynamic model. The Model Predictive Control calculate the cross tracking error and optimize the vehicle trajectory based on an approximate dynamic vehicle motion model. 
 
 This project is my solution to term 2, assignment 5 of the Udacity Self-Driving Car Engineer Nanodegree Program
+
+![alt text][gif]
 
 
 ## Tips
