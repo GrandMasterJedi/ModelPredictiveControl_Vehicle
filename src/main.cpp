@@ -92,12 +92,14 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
-          /*
-          * TODO: Calculate steering angle and throttle using MPC.
-          *
-          * Both are in between [-1, 1].
-          *
+          /* TO DO. Calculate steering angle and throttle using MPC. Both are in between [-1, 1].
           */
+
+
+
+
+
+
           double steer_value;
           double throttle_value;
 
