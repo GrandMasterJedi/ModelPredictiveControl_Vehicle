@@ -96,20 +96,27 @@ int main() {
           */
 
           // global x positions of the waypoints(ptsx, ptsy) -> Transformed to local coordinates (car point of view)
-          vector<double> ptsx_;
-          vector<double> ptsy_;
+          // vector<double> ptsx_;
+          // vector<double> ptsy_;
+
           int np = ptsx.size();
+          auto ptsx_ = Eigen::VectorXd(np);
+          auto ptsy_ = Eigen::VectorXd(np);
 
           // this means we can consider px = 0, py = 0, and psi = 0
           for (int i = 0; i < np; i++) {
             double tx = ptsx[i] - px;
             double ty = ptsy[i] - py;
-            ptsx_.push_back(tx * cos(-psi) - ty * sin(-psi));
-            ptsy_.push_back(tx * sin(-psi) + ty * cos(-psi));
+            ptsx_(i) = tx * cos(-psi) - ty * sin(-psi);
+            ptsy_(i) = tx * sin(-psi) + ty * cos(-psi);
           }
 
           // Fit polynomial to the points (order 3)
           auto coeffs = polyfit(ptsx_, ptsy_, 3);
+
+          // error: could not convert 'ptsx_' from 'std::vector<double>' to 'Eigen::VectorXd {aka Eigen::Matrix<double, -1, 1>}'
+          // Need to convert to eigen vector
+          
 
           double cte = polyeval(coeffs, 0);  // px = 0, py = 0
           double epsi = -atan(coeffs[1]);  // p

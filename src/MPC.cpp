@@ -6,7 +6,7 @@
 using CppAD::AD;
 
 // *************** Set the timestep length and duration**************************
-size_t N = 25;
+int N = 25;
 double dt = 0.05;
 
 /*
@@ -29,14 +29,14 @@ const double ref_cte = 0;
 const double ref_epsi = 0;
 const double ref_v = 100;
 
-const size_t x_start = 0;
-const size_t y_start = x_start + N;
-const size_t psi_start = y_start + N;
-const size_t v_start = psi_start + N;
-const size_t cte_start = v_start + N;
-const size_t epsi_start = cte_start + N;
-const size_t delta_start = epsi_start + N;
-const size_t a_start = delta_start + N - 1;
+const int x_start = 0;
+const int y_start = x_start + N;
+const int psi_start = y_start + N;
+const int v_start = psi_start + N;
+const int cte_start = v_start + N;
+const int epsi_start = cte_start + N;
+const int delta_start = epsi_start + N;
+const int a_start = delta_start + N - 1;
 
 
 class FG_eval {
@@ -160,8 +160,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // For example: If the state is a 4 element vector, the actuators is a 2
   // element vector and there are 10 timesteps. The number of variables is:
   // 4 * 10 + 2 * 9 = nstates * n + nactuators * (n-1)
-  size_t n_vars = 6 * N + 2 * (N - 1);
-  size_t n_constraints = 6 * N;
+  int n_vars = 6 * N + 2 * (N - 1);
+  int n_constraints = 6 * N;
 
 
   // Variables
