@@ -5,7 +5,7 @@
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration**************************
+// *************** Set the timestep length and duration**************************
 size_t N = 25;
 double dt = 0.05;
 
@@ -37,7 +37,6 @@ const size_t cte_start = v_start + N;
 const size_t epsi_start = cte_start + N;
 const size_t delta_start = epsi_start + N;
 const size_t a_start = delta_start + N - 1;
-
 
 
 class FG_eval {
@@ -149,8 +148,6 @@ class FG_eval {
 // MPC class definition implementation.
 //
 
-
-
 MPC::MPC() {}
 MPC::~MPC() {}
 
@@ -196,26 +193,41 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   }
 
   // The upper and lower limits of delta are set to about -30 to 30 degrees : [-.52, .52] rad.
+  double radLim = 30 * 3.142 / 180.0;
   for (int i=delta_start; i < a_start; i++ ) {
-    vars_lowerbound[i] = -0.52*Lf;
-    vars_upperbound[i] = 0.52*Lf;
+    vars_lowerbound[i] = -radLim*Lf;
+    vars_upperbound[i] = radLim*Lf;
   }
 
-  // Actuators: [-1, 1]
+  // Accelleration and decelleration
   for (int i=a_start; i < n_vars; i++ ) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
   }
 
 
-  // Lower and upper limits for the constraints
-  // Should be 0 besides initial state.
+  // Lower and upper limits for the constraints Should be 0 besides initial state.
   Dvector constraints_lowerbound(n_constraints);
   Dvector constraints_upperbound(n_constraints);
   for (int i = 0; i < n_constraints; i++) {
     constraints_lowerbound[i] = 0;
     constraints_upperbound[i] = 0;
   }
+
+  // initial states constr
+  constraints_lowerbound[x_start] = x;
+  constraints_lowerbound[y_start] = y;
+  constraints_lowerbound[psi_start] = psi;
+  constraints_lowerbound[v_start] = v;
+  constraints_lowerbound[cte_start] = cte;
+  constraints_lowerbound[epsi_start] = epsi;
+
+  constraints_upperbound[x_start] = x;
+  constraints_upperbound[y_start] = y;
+  constraints_upperbound[psi_start] = psi;
+  constraints_upperbound[v_start] = v;
+  constraints_upperbound[cte_start] = cte;
+  constraints_upperbound[epsi_start] = epsi;  
 
   // object that computes objective and constraints
   FG_eval fg_eval(coeffs);
@@ -255,10 +267,21 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
 
-  // TODO: Return the first actuator values. The variables can be accessed with
-  // `solution.x[i]`.
+  // ***************************************************************************************
+  // Return the first actuator values. The variables can be accessed with `solution.x[i]`.
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {};
+
+  vector<double> result;
+
+  result.push_back(solution.x[delta_start]);
+  result.push_back(solution.x[a_start]);
+
+  for (int i = 0; i < N-1; i++) {
+    result.push_back(solution.x[x_start + i + 1]);
+    result.push_back(solution.x[y_start + i + 1]);
+  }
+
+  return result;
 }
