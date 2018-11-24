@@ -27,7 +27,7 @@ const double Lf = 2.67;
 // int x_start, y_start, psi_start, v_start, cte_start, epsi_start; // state
 const double ref_cte = 0;
 const double ref_epsi = 0;
-const double ref_v = 100;
+const double ref_v = 70;
 
 const int x_start = 0;
 const int y_start = x_start + N;
@@ -60,28 +60,31 @@ class FG_eval {
 
     // The part of the cost based on the reference state.
     for(int t = 0; t < N; t++ ) {
-      fg[0] += 3000*CppAD::pow(vars[cte_start + t] - ref_cte, 2);
-      fg[0] += 3000*CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
-      fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+      fg[0] += 1000*CppAD::pow(vars[cte_start + t] - ref_cte, 2);
+      fg[0] += 1000*CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
+      fg[0] += 1*CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
     for (int t = 0; t < N - 1; t++) {
       // speed penalty
-      fg[0] += 10*CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += 50*CppAD::pow(vars[delta_start + t], 2);
       // steer penalty
-      fg[0] += 10*CppAD::pow(vars[a_start + t], 2);
-      // iteration
-      fg[0] += 500*CppAD::pow(vars[delta_start + t] * vars[v_start + t], 2);
+      fg[0] += 50*CppAD::pow(vars[a_start + t], 2);
     }
 
     // // Minimize the value gap between sequential actuations.
-    for (int i = 0; i < N - 2; i++) {
+    for (int t = 0; t < N - 2; t++) {
       // Tune this part! Steering angle
       // Multiplying that part by a value > 1 will influence the solver into keeping sequential steering values closer together.
-      fg[0] += 100 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-      fg[0] += 10*CppAD::pow(vars[a_start + i + 1] - vars[a_start + i], 2);
+      fg[0] += 200000*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] += 2000*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
+
+    // terminal cost for heading
+    //for(int t = N-3; t<N; t++){
+     // fg[0] += CppAD::pow(vars[epsi_start + t], 2) * 1000;
+    //}
 
     // Constraints at time 0 
     fg[1 + x_start] = vars[x_start];
@@ -191,10 +194,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars_upperbound[i] = radLim*Lf;
   }
 
-  // Accelleration and decelleration. allow high accelleration
+  // Accelleration and decelleration. allow higher accelleration
   for (int i=a_start; i < n_vars; i++ ) {
-    vars_lowerbound[i] = -5.0;
-    vars_upperbound[i] = 5.0;
+    vars_lowerbound[i] = -1.0;
+    vars_upperbound[i] = 1.0;
   }
 
 

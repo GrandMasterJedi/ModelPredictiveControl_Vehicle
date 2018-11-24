@@ -144,7 +144,7 @@ int main() {
           vector<double> mpc_y_vals;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Green line
+          // the points in the simulator are connected by a Green                
           int ns = vars.size();
           for (int i = 2; i < ns; i ++) {
             if (i%2 == 0) {
@@ -165,8 +165,8 @@ int main() {
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
 
-          // limit yellow to 60 and add every 3 steps (20 points)
-          for (double i = 0; i < 60; i += 3){
+          // limit yellow to 30 and add every 2.5 steps (15 points)
+          for (double i = 0; i < 30; i += 2.5){
             next_x_vals.push_back(i);
             next_y_vals.push_back(polyeval(coeffs, i));
           }
