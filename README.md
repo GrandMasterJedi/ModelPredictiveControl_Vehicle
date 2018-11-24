@@ -61,9 +61,6 @@ The vehicle drives within the simulator. Below is example of driving performance
 
 ## Reflection
 ### The Model
-Student describes their model in detail. This includes the state, actuators and update equations.
-
-
 The model considers the `(x, y)`  coordinates of the vehicle, its orientation angle `psi`, its velocity `v`, as well as the cross-track error `cte` and orientation angle error `epsi`. The output are actuators acceleration `a` and steering angle $\delta$, with acceleration/deceleration limited to [-1,1] and steering angle limited to [-25, 25] degrees. The model update current state and actuations from the previous ones as below:
 ![equations][image3]
 
@@ -80,17 +77,10 @@ Each of the components in the objective function have weights calibrated manuall
 
 
 ### Timestep Length and Elapsed Duration (N & dt)
-Student discusses the reasoning behind the chosen N (timestep length) and dt (elapsed duration between timesteps) values.
-Additionally the student details the previous values tried.
-
 I choose `N = 10` and `dt = 0.1`. Previously, I tried `N = 20` and `dt = 0.05`. Those values define the prediction horizon, impacting optimization speed and trajectory weighting. For higher ratio `N/dt` the optimizer considers lower time steps to update the actuators. In my implementation, this update frequency performs relatively well.
 
 
 ### Polynomial Fitting and MPC Preprocessing
-
-A polynomial is to waypoints.
-If the student preprocesses waypoints, the vehicle state, and/or actuators prior to the MPC procedure it is described.
-
 I preprocess the waypoints by mapping its coordinates to the vehicle coordinate system and then I fit a 3rd-order polynomial as below:
 ```cpp
 for (int i = 0; i < np; i++) {
@@ -106,8 +96,6 @@ auto coeffs = polyfit(ptsx_, ptsy_, 3);
 
 
 ### Model Predictive Control with Latency
-The student implements Model Predictive Control that handles a 100 millisecond latency. Student provides details on how they deal with latency.
-
 The latency is set to 100 milliseconds in the [main.cpp](./src/main.cpp#L190) file, reflecting realistic conditions in the vehicle system.
 ```cpp
 this_thread::sleep_for(chrono::milliseconds(100));
