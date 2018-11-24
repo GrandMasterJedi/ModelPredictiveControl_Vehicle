@@ -1,30 +1,23 @@
 [image1]: ./img/straight.PNG "im1"
 [image2]: ./img/curve.PNG "im2"
-[gif]: ./doc/mpc-vid2.gif "gif1"
-
+[gif]: ./img/mpc-vid2.gif "gif1"
+[image3]: ./doc/3_ModelPredictiveControlFramework.PNG "im3"
 
 # Demo of Model Predictive Control (MPC) for Autonomous Driving
 
-A vehicle drives autonomously in a simulated environment, with its steering angle predicted by a dynamic model. The "model predictive" controller calculates the cross tracking error and optimize the vehicle trajectory based on an approximate dynamic vehicle motion model. 
-
-This project is my solution to term 2, assignment 5 of the Udacity Self-Driving Car Engineer Nanodegree Program
+A vehicle drives autonomously in a simulated environment, with its steering angle and throttle predicted by a kinematic model. The "model predictive" controller calculates the cross tracking error and optimize the vehicle trajectory based on an approximate motion model. 
 
 ![alt text][gif]
 
 
-## Tips
+This project is my solution to term 2, assignment 5 of the Udacity Self-Driving Car Engineer Nanodegree Program. It makes use of `Ipopt` and `CppAD` libraries to calculate the optimal trajectory (minimize error of a polynomial to the given waypoints) and the associated commands.
 
-1. It's recommended to test the MPC on basic examples to see if your implementation behaves as desired. One possible example is the vehicle starting offset of a straight line (reference). If the MPC implementation is correct, after some number of timesteps
-(not too many) it should find and track the reference line.
-2. The `lake_track_waypoints.csv` file has the waypoints of the lake track. You could use this to fit polynomials and points and see of how well your model tracks curve. NOTE: This file might be not completely in sync with the simulator so your solution should NOT depend on it.
-3. For visualization this C++ [matplotlib wrapper](https://github.com/lava/matplotlib-cpp) could be helpful.)
 
+## Example
+The vehicle drives within the simulator. Below is example of driving performance in a straight portion of road and at curvature. The maximum steering angle is fixed to `[-25, +25]`  degrees and the target speed is set to about 40mph.
 
 ![alt text][image1]
 ![alt text][image2]
-
-
-
 
 
 ---
@@ -70,17 +63,60 @@ This project is my solution to term 2, assignment 5 of the Udacity Self-Driving 
 ### The Model
 Student describes their model in detail. This includes the state, actuators and update equations.
 
+
+The model considers the `(x, y)`  coordinates of the vehicle, its orientation angle `psi`, its velocity `v`, as well as the cross-track error `cte` and orientation angle error `epsi`. The output are actuators acceleration `a` and steering angle $\delta$, with acceleration/deceleration limited to [-1,1] and steering angle limited to [-25, 25] degrees. The model update current state and actuations from the previous ones as below:
+![equations][image3]
+
+
+In the equation `Lf` is a constant measuring the distance between the car mass and the front wheels. This value is pre-determined.
+
+The optimum acceleration (`a`) and the steering angle ($\delta$), minimize an objective function. The objective function depends on:
+* Sum of squares of `cte` and `epsi`
+* Sum of squares of the difference of actuators 
+* Sum of squares of the difference between two consecutive actuator values (avoid swings and sharp changes)
+
+Each of the components in the objective function have weights calibrated manually with a trial-and-error approach.
+
+
+
 ### Timestep Length and Elapsed Duration (N & dt)
 Student discusses the reasoning behind the chosen N (timestep length) and dt (elapsed duration between timesteps) values.
 Additionally the student details the previous values tried.
 
+I choose `N = 10` and `dt = 0.1`. Previously, I tried `N = 20` and `dt = 0.05`. Those values define the prediction horizon, impacting optimization speed and trajectory weighting. For higher ratio `N/dt` the optimizer considers lower time steps to update the actuators. In my implementation, this update frequency performs relatively well.
+
+
 ### Polynomial Fitting and MPC Preprocessing
+
 A polynomial is to waypoints.
 If the student preprocesses waypoints, the vehicle state, and/or actuators prior to the MPC procedure it is described.
+
+I preprocess the waypoints by mapping its coordinates to the vehicle coordinate system and then I fit a 3rd-order polynomial as below:
+```cpp
+for (int i = 0; i < np; i++) {
+  double tx = ptsx[i] - px;
+  double ty = ptsy[i] - py;
+  ptsx_(i) = tx * cos(-psi) - ty * sin(-psi);
+  ptsy_(i) = tx * sin(-psi) + ty * cos(-psi);
+}
+
+// Fit polynomial to the points (order 3)
+auto coeffs = polyfit(ptsx_, ptsy_, 3);
+```
+
 
 ### Model Predictive Control with Latency
 The student implements Model Predictive Control that handles a 100 millisecond latency. Student provides details on how they deal with latency.
 
+The latency is set to 100 milliseconds in the [main.cpp](./src/main.cpp#L190) file, reflecting realistic conditions in the vehicle system.
+```cpp
+this_thread::sleep_for(chrono::milliseconds(100));
+```
+
+This latency delays the actuations. While the model output depends on the output from the previous step, with this delay, the actuations is applied to two steps before as 100 milliseconds correspond to one step in my model. The weighting I choose for the different components of the cost function handles well this latency. I believe, it is also because I have a reduced target value for speed (from 100 to 70): 
+```cpp
+const double ref_v = 70;
+```
 
 ---
 ## Reference
